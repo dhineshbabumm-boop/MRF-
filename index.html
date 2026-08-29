@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>MRF Tracker — Prototype</title>
+<title>Maintenance MRF Tracker</title>
 <style>
   :root{
     --bg:#15181C; --panel:#1D2126; --panel2:#22262C; --border:#2C3138; --border-strong:#3A404A;
@@ -122,8 +122,9 @@
 <div class="andon">
   <div class="wrap">
     <div class="andon-top">
-      <div><div class="brand">MRF Tracker</div><div class="brand-sub">Breakdown &amp; repair log — prototype</div></div>
+      <div><div class="brand">MRF Tracker</div><div class="brand-sub">Breakdown &amp; repair log</div></div>
     </div>
+    <!-- Edit the two lines above to your factory / company name -->
     <div class="andon-stats" id="andonStats"></div>
     <div class="role-switch" id="roleSwitch"></div>
     <div class="role-note" id="roleNote"></div>
@@ -154,12 +155,12 @@ function elapsedStr(iso){
 
 async function loadRecords(){
   try{
-    const r = await window.storage.get('mrf:records', true);
-    return r ? JSON.parse(r.value) : seedData();
+    const raw = localStorage.getItem('mrf_records');
+    return raw ? JSON.parse(raw) : seedData();
   }catch(e){ return seedData(); }
 }
 async function saveRecords(){
-  try{ await window.storage.set('mrf:records', JSON.stringify(state.records), true); }
+  try{ localStorage.setItem('mrf_records', JSON.stringify(state.records)); }
   catch(e){ console.error('save failed', e); }
 }
 function seedData(){
@@ -346,7 +347,9 @@ function openReportModal(){
     <input type="text" id="f_name" placeholder="e.g. Ali (Production)" value="${state.currentUser}">
     <div class="err" id="e_name">Enter your name</div>
     <label>Machine</label>
-    <select id="f_machine">${MACHINES.map(m=>`<option>${m}</option>`).join('')}</select>
+    <input type="text" id="f_machine" list="machineOptions" placeholder="Type or pick a machine">
+    <datalist id="machineOptions">${MACHINES.map(m=>`<option value="${m}">`).join('')}</datalist>
+    <div class="err" id="e_machine">Enter or select a machine</div>
     <label>Fault type</label>
     <select id="f_cat">${FAULT_TYPES.map(m=>`<option>${m}</option>`).join('')}</select>
     <label>Type</label>
@@ -363,14 +366,16 @@ function openReportModal(){
 }
 function submitReport(){
   const name = document.getElementById('f_name').value.trim();
+  const machine = document.getElementById('f_machine').value.trim();
   const desc = document.getElementById('f_desc').value.trim();
   let ok = true;
   document.getElementById('e_name').style.display = name ? 'none' : 'block'; if(!name) ok=false;
+  document.getElementById('e_machine').style.display = machine ? 'none' : 'block'; if(!machine) ok=false;
   document.getElementById('e_desc').style.display = desc ? 'none' : 'block'; if(!desc) ok=false;
   if(!ok) return;
   state.currentUser = name;
   const rec = {
-    id:uid(), machine:document.getElementById('f_machine').value, faultCategory:document.getElementById('f_cat').value,
+    id:uid(), machine:machine, faultCategory:document.getElementById('f_cat').value,
     breakdownType:document.getElementById('f_type').value,
     description:desc, reportedBy:name, breakdownTime:new Date().toISOString(), status:'open',
     technician:'', responseTime:null, rootCause:'', actionTaken:'', partsUsed:'', repairEndTime:null,
